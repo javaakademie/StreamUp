@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Stream-Up!</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<style>
+	#map {
+		margin-right: 5px;
+		width: 200px;
+		height: 177px;
+	}
+	
+	#video {
+		background-color: silver;
+		width: 320px;
+		height: 180px;
+	}
+	
+	#messages {
+		overflow-y: scroll;
+		background-color: #FFFFFF;
+		height: 150px;
+	}
+	
+	#messageinput {
+		margin-left: 5px;
+		width: 395px;
+	}
+	
+	.btn-file {
+		position: relative;
+		overflow: hidden;
+	}
+	
+	.btn-file input[type=file] {
+		position: absolute;
+		top: 0;
+		right: 0;
+		min-width: 100%;
+		min-height: 100%;
+		font-size: 100px;
+		text-align: right;
+		filter: alpha(opacity = 0);
+		opacity: 0;
+		outline: none;
+		background: white;
+		cursor: inherit;
+		display: block;
+	}
+	</style>
+</head>
+<body>
+	<div style="margin: 20px; width: 550px;">
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				<table>
+					<tr>
+						<td><video id="video" autoplay="true"></video></td>
+						<td><div id="map"></div></td>
+					</tr>
+				</table>
+			</div>
+			<div class="panel-body">
+				<div class="form-group">
+					<div id="messages" class="form-control"></div>
+				</div>
+			</div>
+			<div class="panel-footer">
+				<table>
+					<tr>
+						<td>
+							<div class="form-group">
+								<span class="btn btn-default btn-file"><span
+									class="glyphicon glyphicon-paperclip"></span> <input
+									id="imageinput" type="file" class="form-control"
+									onchange="previewImage()"> </span>
+							</div>
+						</td>
+						<td>
+							<div class="form-group">
+								<input type="text" id="messageinput" class="form-control"
+									onchange="previewImage()" />
+							</div>
+						</td>
+						<td>
+							<div class="form-group">
+								<button type="button" class="btn btn-primary"
+									style="margin-left: 10px;" onclick="sendImage();sendText();">Send</button>
+							</div>
+						</td>
+					</tr>
+				</table>
+				<img id="imgpreview" height="80" />
+			</div>
+		</div>
+	</div>
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+	<script type="text/javascript">
+	        var video = document.querySelector('video');
+
+       	    var queue = [];
+            var buffer;
+
+            var mediaSource;
+            window.MediaSource = window.MediaSource || window.WebKitMediaSource;
+			if (!!!window.MediaSource) {
+				alert('MediaSource API is not available');
+			} else {
+				mediaSource = new MediaSource();
+	            mediaSource.addEventListener('sourceopen', function(e) {
+	                video.play();
+
+	                buffer = mediaSource.addSourceBuffer('video/mp4;codecs="avc1.64001f,mp4a.40.2"');
+	                buffer.addEventListener('update', function() { 
+	    	       	    if (queue.length > 0 && !buffer.updating) {
+	    	       	      buffer.appendBuffer(queue.shift());
+	    	       	    }
+	                });
+	            }, false);
+
+	            video.src = window.URL.createObjectURL(mediaSource);
+			} 			            
+            
+	        var webSocket = new WebSocket('ws://localhost:8080/streamup/stream');
+            webSocket.binaryType = 'arraybuffer';
+
+            webSocket.onmessage = function(event){
+            	if (event.data instanceof ArrayBuffer) {
+            		console.log('video chunk arrived');
+            		try {
+                  	    if (buffer.updating || queue.length > 0) {
+                   	      queue.push(event.data);
+                   	    } else {
+                   	      buffer.appendBuffer(event.data);
+                   	    }
+                    } catch (e) {
+                        console.log(e);
+                    }                       		
+                } else {
+                    writeResponse(event.data);
+                }
+            };
+
+	        var messages = document.getElementById("messages");
+	        var reader;
+	       
+            webSocket.onopen = function(event){
+                if(event.data === undefined) {
+					return;
+                }
+            };
+
+            webSocket.onclose = function(event){
+                messages.innerHTML += "<br/>" + "Connection closed";
+            };
+	        
+	        function sendImage(){
+	        	var file = document.getElementById('imageinput').value;
+	        	if (file != undefined && file.length > 1) {
+	        		sendMessage("image", reader.result);
+		            document.getElementById("imageinput").value = '';
+		            document.getElementById("imgpreview").style.display = 'none';
+		            document.getElementById("messageinput").focus();
+		        }
+	        }
+	        
+	        function sendText(){
+	            sendMessage("text", document.getElementById("messageinput").value);
+	            document.getElementById("messageinput").value = '';
+	            document.getElementById("messageinput").focus();
+	        }
+	        
+	        function sendMessage(dataType, dataValue){
+	            var json = JSON.stringify({
+	                "type":dataType,
+	                "data":dataValue
+	            });
+	            webSocket.send(json);
+	        }
+	       
+	        function closeSocket(){
+	            webSocket.close();
+	        }
+
+	        function writeResponse(json){
+	            var response = JSON.parse(json);
+	            var output;
+	            switch (response.type){
+	                case "text":
+	                    output = response.data;
+	                    break;
+		            case "image":
+		                output = "<img src=\'" + response.data + "\'/>"
+		                break;
+	            }
+		        var messages = document.getElementById("messages");
+	            messages.innerHTML += "<br/>>" + output;
+	            messages.scrollTop = messages.scrollHeight; 	
+	        }
+	        
+	        function previewImage(){
+	            var file = document.getElementById("imageinput").files[0];
+	            var preview = document.getElementById("imgpreview");
+	            reader = new FileReader();
+	            
+	            reader.onloadend = function(){
+	                preview.src=reader.result;
+	            };
+	            
+	            if(file && file.type.match("image")){
+	                reader.readAsDataURL(file);
+	                document.getElementById("imgpreview").style.display = 'block';
+	            }
+	        }
+
+	        function initMap() {
+	        	var javaland2016LatLng = {lat: 50.7984, lng: 6.8812};
+		        
+	            var mapDiv = document.getElementById('map');
+	            var map = new google.maps.Map(mapDiv, {
+	              center: javaland2016LatLng,
+	              zoom: 15
+	            });
+
+	            var marker = new google.maps.Marker({
+	                position: javaland2016LatLng,
+	                map: map,
+	                title: 'JavaLand 2016'
+	              });
+	            
+	          }
+	        
+	        $(document).ready(function () {
+		        $('#messageinput').keypress(function (e) {
+	        	  if (e.which == 13) {
+	        		  sendText();    
+	        	    return false;   
+	        	  }
+	        	});
+	        	reader = new FileReader();
+		        document.getElementById("imageinput").value = '';
+	            document.getElementById("imgpreview").style.display = 'none';	        	
+	            document.getElementById("messageinput").value = '';
+	            document.getElementById("messageinput").focus();
+	        });
+        </script>
+	    <script src="https://maps.googleapis.com/maps/api/js?callback=initMap" async defer></script>
+</body>
+</html>
