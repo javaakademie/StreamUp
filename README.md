@@ -1,14 +1,14 @@
 # StreamUp
 Bei diesem Prototypen handelt es sich um eine Anwendung, die im Rahmen eines Vortrags auf der JavaLand 2016 entstanden ist. Dort wurde gezeigt, wie eine Bitraten-adaptive HTTP-basierte Live-Video-Streaming-Lösung auf Basis von Java, MPEG-DASH, dem Websocket-Protokoll und dem HTML5-Videoelement möglich ist. Mit der Anwendung können sich beliebig viele Teilnehmer per Chat miteinander austauschen, untereinander Bilder verschicken und gleichzeit einen Videostream verfolgen, der durch einen der Teilnehmer initiiert wurde. Der Lösungsansatz erlaubt ebenfalls die Entgegennahme von Livestreams, die z.B. von der Kamera eines Smartphones aus gesendet werden.
 
-## Hinweis ## 
+## Hinweis  
 Der Prototyp ist auf dem WildFly >=8 getestet und als Client wurde Firefox >=44 genommen. Für die Nutzung mit anderen Browsern müssen Anpassung den Codec entsprechend vorgenommen werde (siehe auch den Link unten "Live-Video-Streaming auf Basis von Web-Standards").
 
 <p align="center"><br/>
-  <img src="https://github.com/javaakademie/MovieStore/blob/master/preview.png" border="0">
+  <img src="https://github.com/javaakademie/StreamUp/blob/master/preview.png" border="0">
 </p>
 
-## Links & Tools ## 
+## Links & Tools  
 Links zu weiterführenden Erklärungen und zu hilfreichen Tools, die bei der Erstellung von MPEG-DASH-Dateien behilflich sein können. 
 
 Artikel zum Lösungsansatz<br/>	   
