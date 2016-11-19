@@ -52,7 +52,7 @@ MPEG Standard<br/>
 MPEG-DASH
 <ul>
   <li>
-	<a href="http://dashif.org/">Dash Industry Forum</a>
+	<a href="http://dashif.org/" target="_blank">Dash Industry Forum</a>
   </li>
   <li>
 	<a href="http://dashif.org/w/2015/04/DASH-IF-IOP-v3.0.pdf" target="_blank">DASH Spec</a>
